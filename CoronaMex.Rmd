@@ -174,7 +174,7 @@ Autor: Jorge Ortega
 
 **Codigo**
   
-Disponible en [GitHub](https://github.com/AntoineSoetewey/coronavirus_dashboard){target='_blank'}.
+Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
 
 **Datos sobre el coronavirus**
   
