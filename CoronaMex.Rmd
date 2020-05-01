@@ -13,8 +13,6 @@ library(coronavirus)
 library(ggdark)
 install_github('RamiKrispin/coronavirus', force = TRUE)
 data(coronavirus)
-update_datasets()
-max(coronavirus$date)
 
 #------------------ Data ------------------
 df <- coronavirus %>%
@@ -67,15 +65,15 @@ cumulative <- df_daily %>%
   pivot_longer(-date, names_to = 'variable', values_to = 'value')
 
 cumulative %>%
-  ggplot(aes(date, value)) + 
-  geom_line(aes(color = variable)) + 
+  ggplot(aes(date, value / 1000)) + 
+  geom_line(aes(color = variable)) +
   scale_color_manual(values = c('steelblue', 'darkred')) +
-  scale_y_continuous(breaks = seq(0, 10000, 500)) +
+  scale_y_continuous(breaks = seq(0, 20, 1)) +
   labs(
     x = 'Fecha',
     y = 'Numero acumulado de casos'
     ) +
-  scale_color_discrete(name  ="Casos",
+  scale_color_discrete(name  ="Casos en miles",
                           breaks=c('confirmed_cum', 'death_cum'),
                           labels=c('Confirmados', 'Muertes')) +
   dark_mode()
@@ -100,12 +98,13 @@ daily_confirmed <- coronavirus %>%
   pivot_wider(names_from = country, values_from = total)
 
 daily_confirmed %>%
-  ggplot(aes(date, Mexico)) +
+  ggplot(aes(date, Mexico / 1000)) +
   geom_line() +
-  scale_y_continuous(breaks = seq(0, 1000, 50)) +
+  geom_smooth() +
+  scale_y_continuous(breaks = seq(0, 2, 0.2)) +
   labs(
     x = 'Fecha',
-    y = 'Nuevos casos'
+    y = 'Nuevos casos (miles)'
     ) +
   dark_mode()  
 ```
@@ -124,6 +123,7 @@ Column
 df_daily %>%
   ggplot(aes(date, death_cum_per)) +
   geom_line() +
+  geom_smooth() +
   scale_y_continuous(breaks = seq(0, 10, 1)) +
   labs(
     x = 'Fecha',
@@ -174,10 +174,10 @@ Autor: Jorge Ortega
 
 **Codigo**
   
-Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
+Disponible en [GitHub](https://github.com/AntoineSoetewey/coronavirus_dashboard){target='_blank'}.
 
 **Datos sobre el coronavirus**
   
-Disponibles en [`{coronavirus}`](https://github.com/RamiKrispin/coronavirus){target='_blank'}.
+Disponibles en [`{coronavirus}`](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
 
 Datos crudos del Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE) Coronavirus [repository](https://github.com/RamiKrispin/coronavirus-csv){target='_blank'}.
