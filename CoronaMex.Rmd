@@ -9,16 +9,16 @@ output: flexdashboard::flex_dashboard
 library(tidyverse)
 library(flexdashboard)
 library(devtools)
+install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 library(ggdark)
-install_github('RamiKrispin/coronavirus', force = TRUE)
 data(coronavirus)
 
 #------------------ Data ------------------
 df <- coronavirus %>%
-  filter(Country.Region == 'Mexico') %>%
+  filter(country == 'Mexico') %>%
   filter(date > '2020-02-26') %>%
-  group_by(Country.Region, type) %>%
+  group_by(country, type) %>%
   summarise(total = sum(cases)) %>%
   pivot_wider(
     names_from = type,
@@ -29,7 +29,7 @@ df <- coronavirus %>%
   ungroup()
 
 df_daily <- coronavirus %>%
-  filter(Country.Region == 'Mexico') %>%
+  filter(country == 'Mexico') %>%
   filter(date > '2020-02-26') %>%
   group_by(date, type) %>%
   summarise(total = sum(cases, na.rm = TRUE)) %>%
@@ -68,7 +68,7 @@ cumulative %>%
   ggplot(aes(date, value / 1000)) + 
   geom_line(aes(color = variable)) +
   scale_color_manual(values = c('steelblue', 'darkred')) +
-  scale_y_continuous(breaks = seq(0, 20, 1)) +
+  scale_y_continuous(breaks = seq(0, 40, 5)) +
   labs(
     x = 'Fecha',
     y = 'Numero acumulado de casos'
@@ -91,7 +91,7 @@ Column
 daily_confirmed <- coronavirus %>%
   filter(type == 'confirmed') %>%
   filter(date >= '2020-02-29') %>%
-  mutate(country = Country.Region) %>%
+  mutate(country = country) %>%
   group_by(date, country) %>%
   summarise(total = sum(cases)) %>%
   ungroup() %>%
@@ -101,7 +101,7 @@ daily_confirmed %>%
   ggplot(aes(date, Mexico / 1000)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 2, 0.2)) +
+  scale_y_continuous(breaks = seq(0, 3, 0.2)) +
   labs(
     x = 'Fecha',
     y = 'Nuevos casos (miles)'
@@ -124,7 +124,7 @@ df_daily %>%
   ggplot(aes(date, death_cum_per)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 10, 1)) +
+  scale_y_continuous(breaks = seq(0, 12, 1)) +
   labs(
     x = 'Fecha',
     y = 'Tasa de muertes (%)'
@@ -174,10 +174,10 @@ Autor: Jorge Ortega
 
 **Codigo**
   
-Disponible en [GitHub](https://github.com/AntoineSoetewey/coronavirus_dashboard){target='_blank'}.
+Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
 
 **Datos sobre el coronavirus**
   
-Disponibles en [`{coronavirus}`](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
+Disponibles en [`{coronavirus}`](https://github.com/RamiKrispin/coronavirus){target='_blank'}.
 
 Datos crudos del Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE) Coronavirus [repository](https://github.com/RamiKrispin/coronavirus-csv){target='_blank'}.
