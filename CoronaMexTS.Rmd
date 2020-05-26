@@ -1,0 +1,135 @@
+---
+title: 'Coronavirus en Mexico (Series de Tiempo)'
+output:
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+
+---
+  
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggdark)
+library(tsibble)
+library(feasts)
+library(fable)
+library(flexdashboard)
+library(devtools)
+install_github('RamiKrispin/coronavirus', force = TRUE)
+library(coronavirus)
+update_dataset(silence = TRUE)
+data(coronavirus)
+
+df_daily <- coronavirus %>%
+  filter(country == 'Mexico') %>%
+  filter(date > '2020-02-26') %>%
+  group_by(date, type) %>%
+  summarise(total = sum(cases, na.rm = TRUE)) %>%
+  pivot_wider(
+    names_from = type,
+    values_from = total
+  ) %>%
+  arrange(date) %>%
+  ungroup() %>%
+  mutate(active = confirmed - death) %>%
+  mutate(
+    confirmed_cum = cumsum(confirmed),
+    death_cum = cumsum(death),
+    death_cum_per = death_cum / confirmed_cum * 100,
+    active_cum = cumsum(active)
+  ) %>%
+  as_tsibble(index = date)
+```
+
+
+Casos confirmados
+=======================================================================
+  
+Column
+-----------------------------------------------------------------------
+  
+### **Casos confirmados (componentes)**
+
+```{r casos decompose}
+df_daily %>%
+  model(STL(confirmed ~ season(period = 7))) %>%
+  components() %>%
+  autoplot() +
+  xlab('Fecha') +
+  ggtitle(
+    'Casos confirmados diarios (Componentes)',
+    subtitle = ''
+    ) +
+  dark_mode()
+```
+
+### **Casos confirmados (predicciones)**
+
+```{r casos forecast}
+df_daily %>%
+  model(arima = ARIMA(confirmed)) %>%
+  forecast() %>%
+  autoplot(
+    filter(
+      df_daily,
+      date > '2020-02-26'
+      )) +
+  xlab('Semana') +
+  ggtitle('Casos confirmados diarios (Predicciones)') +
+  dark_mode()
+```
+
+
+Muertes
+=======================================================================
+  
+Column
+-----------------------------------------------------------------------
+  
+### **Muertes (componentes)**
+
+```{r muertes decompose}
+df_daily %>%
+  model(STL(death ~ season(period = 7))) %>%
+  components() %>%
+  autoplot() +
+  xlab('Fecha') +
+  ggtitle(
+    'Muertes diarias (Componentes)',
+    subtitle = ''
+    ) +
+  dark_mode()
+```
+  
+### **Muertes (predicciones)**
+
+```{r muestres forecast}
+df_daily %>%
+  model(arima = ARIMA(death)) %>%
+  forecast() %>%
+  autoplot(
+    filter(
+      df_daily,
+      date > '2020-03-17'
+      )) +
+  xlab('Semana') +
+  ggtitle('Muertes diarias (Predicciones)') +
+  dark_mode()
+```
+
+Resumen y fuentes
+=======================================================================
+
+Column
+-----------------------------------------------------------------------
+
+Autor: Jorge Ortega
+
+**Codigo**
+  
+Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/CoronaMex.Rmd){target='_blank'}.
+
+**Datos sobre el coronavirus**
+  
+Disponibles en [`{coronavirus}`](https://github.com/RamiKrispin/coronavirus){target='_blank'}.
+
+Datos crudos del Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE) Coronavirus [repository](https://github.com/RamiKrispin/coronavirus-csv){target='_blank'}.
