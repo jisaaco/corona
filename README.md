@@ -1,2 +1,2 @@
 # corona
-Coronavirus dashboard for Mexico
+Coronavirus dashboards for Mexico and State of Yucatan
