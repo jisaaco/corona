@@ -1,0 +1,132 @@
+---
+title: 'Coronavirus en Quintana Roo'
+author: 'Jorge Ortega'
+output:
+  html_document:
+    df_print: paged
+---
+
+**Codigo**
+  
+Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/CoronaRoo.Rmd){target='_blank'}.
+
+**Datos sobre el coronavirus**
+  
+Disponibles en [Dirección General de Epidemología](https://www.gob.mx/salud/documentos/datos-abiertos-152127){target='_blank'}.
+
+```{r paquetes y base, include = FALSE}
+knitr::opts_chunk$set(
+  fig.align = 'center',
+  fig.width = 12,
+  fig.height = 8,
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+  )
+
+library(tidyverse)
+library(tsibble)
+library(feasts)
+library(fable)
+
+COVIDMEX <- read_csv('200602COVID19MEXICO.csv') ## Reemplazarla con la actual
+
+### Bases de datos
+
+sick <- COVIDMEX %>%
+  filter(ENTIDAD_RES == 23,
+         RESULTADO == 1) %>%
+  select(FECHA_SINTOMAS) %>%
+  group_by(FECHA_SINTOMAS) %>%
+  summarise(Casos = n()) %>%
+  as_tsibble(index = FECHA_SINTOMAS) %>%
+  fill_gaps(Casos = 0L)
+
+dead <- COVIDMEX %>%
+  filter(ENTIDAD_RES == 23,
+         RESULTADO == 1,
+         !is.na(FECHA_DEF)) %>%
+  select(FECHA_DEF) %>%
+  group_by(FECHA_DEF) %>%
+  summarise(Casos = n()) %>%
+  as_tsibble(index = FECHA_DEF) %>%
+  fill_gaps(Casos = 0L)
+```
+
+```{r tendencia casos}
+sick %>%
+  ggplot(aes(FECHA_SINTOMAS, Casos)) +
+  geom_line() +
+  geom_smooth() +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(x = 'Fecha',
+       y = 'Nuevos casos diarios') +
+  ggtitle('Casos confirmados diarios (tendencia)') +
+  theme_linedraw()
+```
+
+```{r series casos 1}
+sick %>%
+  model(STL(Casos ~ season(period = 7))) %>%
+  components() %>%
+  autoplot() +
+  xlab('Fecha') +
+  ggtitle(
+    'Casos confirmados diarios (componentes)',
+    subtitle = ''
+    ) +
+  theme_linedraw()
+```
+
+```{r series casos 2}
+sick %>%
+  model(arima = ARIMA(Casos)) %>%
+  forecast() %>%
+  autoplot(
+    filter(
+      sick,
+      FECHA_SINTOMAS >= '2020-03-01'
+      )) +
+  xlab('Semana') +
+  ggtitle('Casos confirmados diarios (predicciones)') +
+  theme_linedraw()
+```
+
+```{r tendencias muertes}
+dead %>%
+  ggplot(aes(FECHA_DEF, Casos)) +
+  geom_line() +
+  geom_smooth() +
+  scale_y_continuous(breaks = seq(0, 10, 1)) +
+  labs(x = 'Fecha',
+       y = 'Nuevas muertes diarias') +
+  ggtitle('Nuevas muertes diarias (tendencia)') +
+  theme_linedraw()
+```
+
+```{r series muertes 1}
+dead %>%
+  model(STL(Casos ~ season(period = 7))) %>%
+  components() %>%
+  autoplot() +
+  xlab('Fecha') +
+  ggtitle(
+    'Nuevas muertes diarias (componentes)',
+    subtitle = ''
+    ) +
+  theme_linedraw()
+```
+
+```{r series muertes 2}
+dead %>%
+  model(arima = ARIMA(Casos)) %>%
+  forecast() %>%
+  autoplot(
+    filter(
+      dead,
+      FECHA_DEF >= '2020-03-26'
+      )) +
+  xlab('Semana') +
+  ggtitle('Nuevas muertes diarias (predicciones)') +
+  theme_linedraw()
+```
