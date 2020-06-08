@@ -7,8 +7,13 @@ output:
 ---
   
 ```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  fig.align = 'center',
+  fig.width = 12,
+  fig.height = 8
+  )
+
 library(tidyverse)
-library(ggdark)
 library(tsibble)
 library(feasts)
 library(fable)
@@ -47,22 +52,19 @@ Casos confirmados
 Column
 -----------------------------------------------------------------------
   
-### **Casos confirmados (componentes)**
-
 ```{r casos decompose}
 df_daily %>%
   model(STL(confirmed ~ season(period = 7))) %>%
   components() %>%
   autoplot() +
   xlab('Fecha') +
+  ylab('Nuevos casos') +
   ggtitle(
-    'Casos confirmados diarios (Componentes)',
+    'Casos confirmados diarios (componentes)',
     subtitle = ''
     ) +
-  dark_mode()
+  theme_linedraw()
 ```
-
-### **Casos confirmados (predicciones)**
 
 ```{r casos forecast}
 df_daily %>%
@@ -74,8 +76,9 @@ df_daily %>%
       date > '2020-02-26'
       )) +
   xlab('Semana') +
-  ggtitle('Casos confirmados diarios (Predicciones)') +
-  dark_mode()
+  ylab('Nuevos casos') +
+  ggtitle('Casos confirmados diarios (predicciones)') +
+  theme_linedraw()
 ```
 
 
@@ -84,8 +87,6 @@ Muertes
   
 Column
 -----------------------------------------------------------------------
-  
-### **Muertes (componentes)**
 
 ```{r muertes decompose}
 df_daily %>%
@@ -93,14 +94,13 @@ df_daily %>%
   components() %>%
   autoplot() +
   xlab('Fecha') +
+  ylab('Muertes') +
   ggtitle(
-    'Muertes diarias (Componentes)',
+    'Muertes diarias (componentes)',
     subtitle = ''
     ) +
-  dark_mode()
+  theme_linedraw()
 ```
-  
-### **Muertes (predicciones)**
 
 ```{r muestres forecast}
 df_daily %>%
@@ -112,11 +112,12 @@ df_daily %>%
       date > '2020-03-17'
       )) +
   xlab('Semana') +
-  ggtitle('Muertes diarias (Predicciones)') +
-  dark_mode()
+  ylab('Muertes') +
+  ggtitle('Muertes diarias (predicciones)') +
+  theme_linedraw()
 ```
 
-Resumen y fuentes
+Código y fuentes
 =======================================================================
 
 Column
