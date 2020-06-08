@@ -7,11 +7,9 @@ output:
 ---
   
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  fig.align = 'center',
-  fig.width = 12,
-  fig.height = 8
-  )
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 12,
+                      fig.height = 8)
 
 library(tidyverse)
 library(tsibble)
@@ -28,21 +26,14 @@ df_daily <- coronavirus %>%
   filter(country == 'Mexico') %>%
   filter(date > '2020-02-26') %>%
   group_by(date, type) %>%
-  summarise(total = sum(cases, na.rm = TRUE)) %>%
-  pivot_wider(
-    names_from = type,
-    values_from = total
-  ) %>%
+  summarise(total = sum(cases,
+                        na.rm = TRUE)) %>%
+  pivot_wider(names_from = type,
+              values_from = total) %>%
   arrange(date) %>%
   ungroup() %>%
-  mutate(active = confirmed - death) %>%
-  mutate(
-    confirmed_cum = cumsum(confirmed),
-    death_cum = cumsum(death),
-    death_cum_per = death_cum / confirmed_cum * 100,
-    active_cum = cumsum(active)
-  ) %>%
-  as_tsibble(index = date)
+  as_tsibble(index = date) %>%
+  fill_gaps(Casos = 0L)
 ```
 
 
@@ -56,29 +47,37 @@ Column
 df_daily %>%
   model(STL(confirmed ~ season(period = 7))) %>%
   components() %>%
-  autoplot() +
-  xlab('Fecha') +
-  ylab('Nuevos casos') +
-  ggtitle(
-    'Casos confirmados diarios (componentes)',
-    subtitle = ''
-    ) +
-  theme_linedraw()
+  rename(Fecha = date,
+         Casos = confirmed,
+         Tendencia = trend,
+         Ciclos = season_7,
+         Ruido = remainder) %>%
+  select(Fecha,
+         Casos,
+         Tendencia,
+         Ciclos,
+         Ruido) %>%
+  pivot_longer(cols = Casos:Ruido,
+               names_to = 'Serie') %>%
+  ggplot(aes(Fecha, value)) +
+  geom_line() +
+  facet_grid(Serie ~ .,
+             scales = 'free_y') +
+  labs(title = 'Casos diarios (componentes)',
+       x = 'Semana',
+       y = 'Muertes')
 ```
 
 ```{r casos forecast}
 df_daily %>%
   model(arima = ARIMA(confirmed)) %>%
   forecast() %>%
-  autoplot(
-    filter(
-      df_daily,
-      date > '2020-02-26'
-      )) +
-  xlab('Semana') +
-  ylab('Nuevos casos') +
-  ggtitle('Casos confirmados diarios (predicciones)') +
-  theme_linedraw()
+  autoplot(filter(df_daily,
+                  date > '2020-02-26')) +
+  labs(title = 'Casos diarios (predicciones)',
+       x = 'Semana',
+       y = 'Muertes',
+       level = 'Nivel')
 ```
 
 
@@ -92,29 +91,33 @@ Column
 df_daily %>%
   model(STL(death ~ season(period = 7))) %>%
   components() %>%
-  autoplot() +
-  xlab('Fecha') +
-  ylab('Muertes') +
-  ggtitle(
-    'Muertes diarias (componentes)',
-    subtitle = ''
-    ) +
-  theme_linedraw()
+  rename(Fecha = date,
+         Casos = death,
+         Tendencia = trend,
+         Ciclos = season_7,
+         Ruido = remainder) %>%
+  select(Fecha, Casos, Tendencia, Ciclos, Ruido) %>%
+  pivot_longer(cols = Casos:Ruido,
+               names_to = 'Serie') %>%
+  ggplot(aes(Fecha, value)) +
+  geom_line() +
+  facet_grid(Serie ~ .,
+             scales = 'free_y') +
+  labs(title = 'Muertes diarias (componentes)',
+       x = 'Semana',
+       y = 'Muertes')
 ```
 
-```{r muestres forecast}
+```{r muertes forecast}
 df_daily %>%
   model(arima = ARIMA(death)) %>%
   forecast() %>%
-  autoplot(
-    filter(
-      df_daily,
-      date > '2020-03-17'
-      )) +
-  xlab('Semana') +
-  ylab('Muertes') +
-  ggtitle('Muertes diarias (predicciones)') +
-  theme_linedraw()
+  autoplot(filter(df_daily,
+                  date > '2020-03-17')) +
+  labs(title = 'Muertes diarias (predicciones)',
+       x = 'Semana',
+       y = 'Muertes',
+       level = 'Nivel')
 ```
 
 Código y fuentes
