@@ -1,24 +1,32 @@
 ---
 title: 'Coronavirus en Mexico'
-output: flexdashboard::flex_dashboard
+output:
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+
 
 ---
   
-```{r setup, include=FALSE}
-#------------------ Packages ------------------
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  fig.align = 'center',
+  fig.width = 12,
+  fig.height = 8
+  )
+
 library(tidyverse)
 library(flexdashboard)
 library(devtools)
+install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 library(scales)
-library(ggdark)
 update_dataset(silence = TRUE)
 data(coronavirus)
 
-#------------------ Data ------------------
 df <- coronavirus %>%
   filter(country == 'Mexico') %>%
   filter(date > '2020-02-26') %>%
+  
   group_by(country, type) %>%
   summarise(total = sum(cases)) %>%
   pivot_wider(
@@ -50,38 +58,54 @@ df_daily <- coronavirus %>%
 
 daily_confirmed <- coronavirus %>%
   filter(type == 'confirmed') %>%
-  filter(date >= '2020-02-29') %>%
+  filter(date >= '2020-02-27') %>%
   mutate(country = country) %>%
   group_by(date, country) %>%
   summarise(total = sum(cases)) %>%
   ungroup() %>%
   pivot_wider(names_from = country, values_from = total)
 
-df1 <- coronavirus %>% filter(date == max(date))
+daily_death <- coronavirus %>%
+  filter(type == 'death') %>%
+  filter(date >= '2020-03-18') %>%
+  mutate(country = country) %>%
+  group_by(date, country) %>%
+  summarise(total = sum(cases)) %>%
+  ungroup() %>%
+  pivot_wider(names_from = country, values_from = total)
 ```
 
-Casos acumulados
+Casos confirmados
 =======================================================================
   
 Column
 -----------------------------------------------------------------------
   
-### **Casos acumulados en Mexico (log 10)**
+### **Casos acumulados en Mexico**
   
 ```{r}
 df_daily %>%
-  ggplot(aes(date, confirmed_cum)) + 
+  ggplot(aes(date, confirmed_cum/1000)) + 
   geom_line() +
   geom_smooth() +
-  scale_y_log10(breaks = trans_breaks("log10",
-                                      function(x) 10^x),
-                                      labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_continuous(breaks = seq(0, 150, 10)) +
   labs(x = 'Fecha',
-       y = 'Numero acumulado de casos') +
-  annotation_logticks() +
-  dark_mode()
+       y = 'Numero acumulado de casos (miles)') +
+  theme_linedraw()
 ```
 
+### **Nuevos casos diarios**
+  
+```{r}
+daily_confirmed %>%
+  ggplot(aes(date, Mexico/1000)) +
+  geom_line() +
+  geom_smooth() +
+  scale_y_continuous(breaks = seq(0, 10, 1)) +
+  labs(x = 'Fecha',
+       y = 'Nuevos casos diarios (miles)') +
+  theme_linedraw()  
+```
 
 Muertes acumuladas
 =======================================================================
@@ -89,49 +113,39 @@ Muertes acumuladas
 Column
 -----------------------------------------------------------------------
   
-### **Muertes acumuladas en Mexico (log 10)**
+### **Muertes acumuladas en Mexico**
   
 ```{r}
 df_daily %>%
-  ggplot(aes(date, death_cum)) + 
+  ggplot(aes(date, death_cum/1000)) + 
   geom_line() +
   geom_smooth() +
-  scale_y_log10(breaks = trans_breaks("log10",
-                                      function(x) 10^x),
-                                      labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Numero acumulado de muertes') +
-  annotation_logticks() +
-  dark_mode()
+       y = 'Numero acumulado de muertes (miles)') +
+  theme_linedraw()
 ```
 
 
-Nuevos casos
-=======================================================================
-  
-Column
--------------------------------------
-  
-### **Nuevos casos diarios**
+### **Nuevas muertes diarias**
   
 ```{r}
-daily_confirmed %>%
-  ggplot(aes(date, Mexico / 1000)) +
+daily_death %>%
+  ggplot(aes(date, Mexico/100)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 3, 0.2)) +
+  scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Nuevos casos diarios (miles)') +
-  dark_mode()  
+       y = 'Nuevas muertes diarias (cientos)') +
+  theme_linedraw()  
 ```
-
-
-Tasa de muertes
+  
+  
+Tasa de muertes/caso
 =======================================================================
   
 Column
 -------------------------------------
-  
   
 ### **Tasa de muertes (%)**
   
@@ -140,11 +154,12 @@ df_daily %>%
   ggplot(aes(date, death_cum_per)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 12, 1)) +
+  scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
        y = 'Tasa de muertes (%)') +
-  dark_mode()
+  theme_linedraw()
 ```
+
 
 Resumen y fuentes
 =======================================================================
