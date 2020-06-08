@@ -29,7 +29,12 @@ library(tsibble)
 library(feasts)
 library(fable)
 
-COVIDMEX <- read_csv('200602COVID19MEXICO.csv') ## Reemplazarla con la actual
+temp <- tempfile()
+download.file('http://187.191.75.115/gobmx/salud/datos_abiertos/datos_abiertos_covid19.zip', temp)
+file.rename(unzip(temp), 'COVIDMEX.csv')
+remove(temp)
+
+COVIDMEX <- read_csv('COVIDMEX.csv')
 
 ### Bases de datos
 
@@ -79,6 +84,7 @@ sick %>%
 ```
 
 ```{r series casos 2}
+limsup_S <- max(sick$Casos) + 10
 sick %>%
   model(arima = ARIMA(Casos)) %>%
   forecast() %>%
@@ -88,6 +94,8 @@ sick %>%
       FECHA_SINTOMAS > '2020-03-06'
       )) +
   xlab('Semana') +
+  ylab('Casos') +
+  ylim(0, max(sick$Casos) + 10) +
   ggtitle('Casos confirmados diarios (predicciones)') +
   theme_linedraw()
 ```
@@ -127,6 +135,8 @@ dead %>%
       FECHA_DEF > '2020-04-02'
       )) +
   xlab('Semana') +
+  ylab('Muertes') +
+  ylim(0, max(dead$Casos) + 1) +
   ggtitle('Nuevas muertes diarias (predicciones)') +
   theme_linedraw()
 ```
