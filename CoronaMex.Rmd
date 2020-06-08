@@ -8,11 +8,9 @@ output:
 ---
   
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  fig.align = 'center',
-  fig.width = 12,
-  fig.height = 8
-  )
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 12,
+                      fig.height = 8)
 
 library(tidyverse)
 library(flexdashboard)
@@ -23,38 +21,18 @@ library(scales)
 update_dataset(silence = TRUE)
 data(coronavirus)
 
-df <- coronavirus %>%
-  filter(country == 'Mexico') %>%
-  filter(date > '2020-02-26') %>%
-  
-  group_by(country, type) %>%
-  summarise(total = sum(cases)) %>%
-  pivot_wider(
-    names_from = type,
-    values_from = total
-  ) %>%
-  mutate(unrecovered = confirmed - ifelse(is.na(death), 0, death)) %>%
-  arrange(-confirmed) %>%
-  ungroup()
-
 df_daily <- coronavirus %>%
   filter(country == 'Mexico') %>%
   filter(date > '2020-02-26') %>%
   group_by(date, type) %>%
   summarise(total = sum(cases, na.rm = TRUE)) %>%
-  pivot_wider(
-    names_from = type,
-    values_from = total
-  ) %>%
+  pivot_wider(names_from = type,
+              values_from = total) %>%
   arrange(date) %>%
   ungroup() %>%
-  mutate(active = confirmed - death) %>%
-  mutate(
-    confirmed_cum = cumsum(confirmed),
-    death_cum = cumsum(death),
-    death_cum_per = death_cum / confirmed_cum * 100,
-    active_cum = cumsum(active)
-  )
+  mutate(confirmed_cum = cumsum(confirmed),
+         death_cum = cumsum(death),
+         death_cum_per = death_cum / confirmed_cum * 100)
 
 daily_confirmed <- coronavirus %>%
   filter(type == 'confirmed') %>%
@@ -63,7 +41,8 @@ daily_confirmed <- coronavirus %>%
   group_by(date, country) %>%
   summarise(total = sum(cases)) %>%
   ungroup() %>%
-  pivot_wider(names_from = country, values_from = total)
+  pivot_wider(names_from = country,
+              values_from = total)
 
 daily_death <- coronavirus %>%
   filter(type == 'death') %>%
@@ -72,7 +51,8 @@ daily_death <- coronavirus %>%
   group_by(date, country) %>%
   summarise(total = sum(cases)) %>%
   ungroup() %>%
-  pivot_wider(names_from = country, values_from = total)
+  pivot_wider(names_from = country,
+              values_from = total)
 ```
 
 Casos confirmados
@@ -90,8 +70,7 @@ df_daily %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 150, 10)) +
   labs(x = 'Fecha',
-       y = 'Numero acumulado de casos (miles)') +
-  theme_linedraw()
+       y = 'Numero acumulado de casos (miles)')
 ```
 
 ### **Nuevos casos diarios**
@@ -103,8 +82,7 @@ daily_confirmed %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 10, 1)) +
   labs(x = 'Fecha',
-       y = 'Nuevos casos diarios (miles)') +
-  theme_linedraw()  
+       y = 'Nuevos casos diarios (miles)')
 ```
 
 Muertes acumuladas
@@ -122,8 +100,7 @@ df_daily %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Numero acumulado de muertes (miles)') +
-  theme_linedraw()
+       y = 'Numero acumulado de muertes (miles)')
 ```
 
 
@@ -136,8 +113,7 @@ daily_death %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Nuevas muertes diarias (cientos)') +
-  theme_linedraw()  
+       y = 'Nuevas muertes diarias (cientos)')
 ```
   
   
@@ -156,8 +132,7 @@ df_daily %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Tasa de muertes (%)') +
-  theme_linedraw()
+       y = 'Tasa de muertes (%)')
 ```
 
 
@@ -172,7 +147,7 @@ Column
 ```{r}
 
 valueBox(
-  value = paste(format(sum(df$confirmed), big.mark = ','), '', sep = ' '),
+  value = paste(format(sum(df_daily$confirmed), big.mark = ','), '', sep = ' '),
   caption = 'Casos totales confirmados [Primer caso: 27 de Febrero]',
   color = 'steelblue'
 )
@@ -184,8 +159,8 @@ valueBox(
 ```{r}
 
 valueBox(
-  value = paste(format(sum(df$death, na.rm = TRUE), big.mark = ','), ' (',
-                round(100 * sum(df$death, na.rm = TRUE) / sum(df$confirmed), 1),
+  value = paste(format(sum(df_daily$death, na.rm = TRUE), big.mark = ','), ' (',
+                round(100 * sum(df_daily$death, na.rm = TRUE) / sum(df_daily$confirmed), 1),
                 '%)',
                 sep = ''
   ),
