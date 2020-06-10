@@ -1,0 +1,82 @@
+---
+title: 'Coronavirus en México'
+subtitle: 'Comparación de Fuentes'
+author: 'Jorge Ortega'
+output:
+  html_document:
+    df_print: paged
+---
+
+**Codigo**
+  
+Disponible en [GitHub](https://github.com/jisaaco/corona/blob/master/Comparavirus.Rmd){target='_blank'}.
+
+**Datos sobre el coronavirus**
+  
+Disponibles en:
++ [Dirección General de Epidemología](https://www.gob.mx/salud/documentos/datos-abiertos-152127){target='_blank'}.
++ [Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE)](https://github.com/RamiKrispin/coronavirus-csv){target='_blank'}.
+
+```{r paquetes y base, include = FALSE}
+knitr::opts_chunk$set(fig.align = 'center',
+                      fig.width = 12,
+                      fig.height = 8,
+                      echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+library(tidyverse)
+library(flexdashboard)
+library(devtools)
+## install_github('RamiKrispin/coronavirus', force = TRUE)
+library(coronavirus)
+library(scales)
+update_dataset(silence = TRUE)
+data(coronavirus)
+
+temp <- tempfile()
+download.file('http://187.191.75.115/gobmx/salud/datos_abiertos/datos_abiertos_covid19.zip', temp)
+file.rename(unzip(temp), 'COVIDMEX.csv')
+remove(temp)
+
+COVIDMEX <- read_csv('COVIDMEX.csv')
+
+jhu <- coronavirus %>%
+  filter(country == 'Mexico',
+         date > '2020-02-26') %>%
+  group_by(date,
+           type) %>%
+  summarise(total = sum(cases,
+                        na.rm = TRUE)) %>%
+  pivot_wider(names_from = type,
+              values_from = total) %>%
+  arrange(date) %>%
+  ungroup() %>%
+  select(date,
+         confirmed) %>%
+  rename(Fecha = date,
+         `JHU CCSE` = confirmed)
+
+mex <- COVIDMEX %>%
+  filter(RESULTADO == 1) %>%
+  select(FECHA_SINTOMAS) %>%
+  group_by(FECHA_SINTOMAS) %>%
+  summarise(DGE = n()) %>%
+  rename(Fecha = FECHA_SINTOMAS)
+```
+
+```{r Comparación}
+jhu %>% inner_join(mex, by = 'Fecha') %>%
+  pivot_longer(-Fecha,
+               names_to = 'Fuente',
+               values_to = 'Casos') %>%
+  ggplot(aes(Fecha,
+             Casos,
+             color = Fuente)) +
+  geom_line() +
+  geom_smooth() +
+  labs(title = 'Casos Diarios Confirmados de COVID-19 en México',
+  subtitle = 'Comparación entre Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE)
+y la Dirección General de Epidemología (DGE)',
+  caption = 'Elaboró: Jorge Ortega')
+```
