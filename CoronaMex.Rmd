@@ -15,7 +15,7 @@ knitr::opts_chunk$set(fig.align = 'center',
 library(tidyverse)
 library(flexdashboard)
 library(devtools)
-install_github('RamiKrispin/coronavirus', force = TRUE)
+## install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 library(scales)
 update_dataset(silence = TRUE)
@@ -33,26 +33,6 @@ df_daily <- coronavirus %>%
   mutate(confirmed_cum = cumsum(confirmed),
          death_cum = cumsum(death),
          death_cum_per = death_cum / confirmed_cum * 100)
-
-daily_confirmed <- coronavirus %>%
-  filter(type == 'confirmed') %>%
-  filter(date >= '2020-02-27') %>%
-  mutate(country = country) %>%
-  group_by(date, country) %>%
-  summarise(total = sum(cases)) %>%
-  ungroup() %>%
-  pivot_wider(names_from = country,
-              values_from = total)
-
-daily_death <- coronavirus %>%
-  filter(type == 'death') %>%
-  filter(date >= '2020-03-18') %>%
-  mutate(country = country) %>%
-  group_by(date, country) %>%
-  summarise(total = sum(cases)) %>%
-  ungroup() %>%
-  pivot_wider(names_from = country,
-              values_from = total)
 ```
 
 Casos confirmados
@@ -65,10 +45,9 @@ Column
   
 ```{r}
 df_daily %>%
-  ggplot(aes(date, confirmed_cum/1000)) + 
+  ggplot(aes(date, confirmed_cum)) + 
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 150, 10)) +
   labs(x = 'Fecha',
        y = 'Numero acumulado de casos (miles)')
 ```
@@ -76,11 +55,10 @@ df_daily %>%
 ### **Nuevos casos diarios**
   
 ```{r}
-daily_confirmed %>%
-  ggplot(aes(date, Mexico/1000)) +
+df_daily %>%
+  ggplot(aes(date, confirmed)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 10, 1)) +
   labs(x = 'Fecha',
        y = 'Nuevos casos diarios (miles)')
 ```
@@ -95,10 +73,9 @@ Column
   
 ```{r}
 df_daily %>%
-  ggplot(aes(date, death_cum/1000)) + 
+  ggplot(aes(date, death_cum)) + 
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
        y = 'Numero acumulado de muertes (miles)')
 ```
@@ -107,11 +84,10 @@ df_daily %>%
 ### **Nuevas muertes diarias**
   
 ```{r}
-daily_death %>%
-  ggplot(aes(date, Mexico/100)) +
+df_daily %>%
+  ggplot(aes(date, death)) +
   geom_line() +
   geom_smooth() +
-  scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
        y = 'Nuevas muertes diarias (cientos)')
 ```
