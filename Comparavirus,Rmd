@@ -31,6 +31,7 @@ library(devtools)
 ## install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 library(scales)
+
 update_dataset(silence = TRUE)
 data(coronavirus)
 
@@ -63,9 +64,32 @@ mex <- COVIDMEX %>%
   group_by(FECHA_SINTOMAS) %>%
   summarise(DGE = n()) %>%
   rename(Fecha = FECHA_SINTOMAS)
+
+jhu_d <- coronavirus %>%
+  filter(country == 'Mexico',
+         date > '2020-02-26') %>%
+  group_by(date,
+           type) %>%
+  summarise(total = sum(cases,
+                        na.rm = TRUE)) %>%
+  pivot_wider(names_from = type,
+              values_from = total) %>%
+  arrange(date) %>%
+  ungroup() %>%
+  select(date,
+         death) %>%
+  rename(Fecha = date,
+         `JHU CCSE` = death)
+
+mex_d <- COVIDMEX %>%
+  filter(RESULTADO == 1) %>%
+  select(FECHA_DEF) %>%
+  group_by(FECHA_DEF) %>%
+  summarise(DGE = n()) %>%
+  rename(Fecha = FECHA_DEF)
 ```
 
-```{r Comparación}
+```{r Comparación casos}
 jhu %>% inner_join(mex, by = 'Fecha') %>%
   pivot_longer(-Fecha,
                names_to = 'Fuente',
@@ -76,6 +100,22 @@ jhu %>% inner_join(mex, by = 'Fecha') %>%
   geom_line() +
   geom_smooth() +
   labs(title = 'Casos Diarios Confirmados de COVID-19 en México',
+  subtitle = 'Comparación entre Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE)
+y la Dirección General de Epidemología (DGE)',
+  caption = 'Elaboró: Jorge Ortega')
+```
+
+```{r Comparación muertes}
+jhu_d %>% inner_join(mex_d, by = 'Fecha') %>%
+  pivot_longer(-Fecha,
+               names_to = 'Fuente',
+               values_to = 'Muertes') %>%
+  ggplot(aes(Fecha,
+             Muertes,
+             color = Fuente)) +
+  geom_line() +
+  geom_smooth() +
+  labs(title = 'Muertes Diarias por COVID-19 en México',
   subtitle = 'Comparación entre Johns Hopkins University Center for Systems Science and Engineering (JHU CCSE)
 y la Dirección General de Epidemología (DGE)',
   caption = 'Elaboró: Jorge Ortega')
