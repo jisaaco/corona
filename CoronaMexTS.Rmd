@@ -17,7 +17,7 @@ library(feasts)
 library(fable)
 library(flexdashboard)
 library(devtools)
-install_github('RamiKrispin/coronavirus', force = TRUE)
+## install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 update_dataset(silence = TRUE)
 data(coronavirus)
@@ -42,7 +42,25 @@ Casos confirmados
   
 Column
 -----------------------------------------------------------------------
-  
+```{r casos ciclos}
+df_daily %>%
+  gg_season(confirmed,
+           period = 'week') +
+  labs(title = 'Casos diarios (ciclos semanales)',
+       x = 'Día',
+       y = 'Casos',
+       colour = 'Semana') +
+  scale_x_date(date_breaks = 'days',
+               date_labels = c('Lunes',
+                               'Martes',
+                               'Miércoles',
+                               'Jueves',
+                               'Viernes',
+                               'Sábado',
+                               'Domingo')) +
+  scale_color_continuous(guide = guide_legend(reverse = TRUE))
+```
+
 ```{r casos decompose}
 df_daily %>%
   model(STL(confirmed ~ season(period = 7))) %>%
@@ -65,7 +83,7 @@ df_daily %>%
              scales = 'free_y') +
   labs(title = 'Casos diarios (componentes)',
        x = 'Semana',
-       y = 'Muertes')
+       y = 'Casos')
 ```
 
 ```{r casos forecast}
@@ -76,7 +94,7 @@ df_daily %>%
                   date > '2020-02-26')) +
   labs(title = 'Casos diarios (predicciones)',
        x = 'Semana',
-       y = 'Muertes',
+       y = 'Casos',
        level = 'Nivel')
 ```
 
@@ -86,6 +104,24 @@ Muertes
   
 Column
 -----------------------------------------------------------------------
+```{r muertes ciclos}
+df_daily %>%
+  gg_season(death,
+           period = 'week') +
+  labs(title = 'Muertes diarias (ciclos semanales)',
+       x = 'Día',
+       y = 'Muertes',
+       colour = 'Semana') +
+  scale_x_date(date_breaks = 'days',
+               date_labels = c('Lunes',
+                               'Martes',
+                               'Miércoles',
+                               'Jueves',
+                               'Viernes',
+                               'Sábado',
+                               'Domingo')) +
+  scale_color_continuous(guide = guide_legend(reverse = TRUE))
+```
 
 ```{r muertes decompose}
 df_daily %>%
