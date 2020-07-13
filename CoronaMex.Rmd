@@ -1,5 +1,5 @@
 ---
-title: 'Coronavirus en Mexico'
+title: 'Coronavirus en México'
 output:
   flexdashboard::flex_dashboard:
     vertical_layout: scroll
@@ -14,8 +14,11 @@ knitr::opts_chunk$set(fig.align = 'center',
 
 library(tidyverse)
 library(flexdashboard)
+library(tsibble)
+library(feasts)
+library(fable)
 library(devtools)
-## install_github('RamiKrispin/coronavirus', force = TRUE)
+# install_github('RamiKrispin/coronavirus', force = TRUE)
 library(coronavirus)
 library(scales)
 update_dataset(silence = TRUE)
@@ -33,6 +36,19 @@ df_daily <- coronavirus %>%
   mutate(confirmed_cum = cumsum(confirmed),
          death_cum = cumsum(death),
          death_cum_per = death_cum / confirmed_cum * 100)
+
+df_daily_ts <- coronavirus %>%
+  filter(country == 'Mexico') %>%
+  filter(date > '2020-02-26') %>%
+  group_by(date, type) %>%
+  summarise(total = sum(cases,
+                        na.rm = TRUE)) %>%
+  pivot_wider(names_from = type,
+              values_from = total) %>%
+  arrange(date) %>%
+  ungroup() %>%
+  as_tsibble(index = date) %>%
+  fill_gaps(Casos = 0L)
 ```
 
 Casos confirmados
@@ -40,58 +56,200 @@ Casos confirmados
   
 Column
 -----------------------------------------------------------------------
+
   
-### **Casos acumulados en Mexico**
+### **Casos confirmados acumulados en Mexico**
   
 ```{r}
 df_daily %>%
   ggplot(aes(date, confirmed_cum)) + 
   geom_line() +
   geom_smooth() +
-  labs(x = 'Fecha',
-       y = 'Numero acumulado de casos (miles)')
+  labs(title = 'Casos diarios (acumulados)',
+       x = 'Fecha',
+       y = 'Numero acumulado de casos',
+       caption = 'Elaboró: Jorge Ortega')
 ```
 
-### **Nuevos casos diarios**
+
+### **Nuevos casos confirmados diarios**
   
 ```{r}
 df_daily %>%
   ggplot(aes(date, confirmed)) +
   geom_line() +
   geom_smooth() +
-  labs(x = 'Fecha',
-       y = 'Nuevos casos diarios (miles)')
+  labs(title = 'Casos diarios (tendencia)',
+       x = 'Fecha',
+       y = 'Nuevos casos diarios',
+       caption = 'Elaboró: Jorge Ortega')
 ```
 
-Muertes acumuladas
+
+### **Ciclicidad de casos confirmados**
+
+```{r casos ciclos}
+df_daily_ts %>%
+  gg_season(confirmed,
+           period = 'week') +
+  labs(title = 'Casos diarios (ciclos semanales)',
+       x = 'Día',
+       y = 'Casos',
+       colour = 'Semana',
+       caption = 'Elaboró: Jorge Ortega') +
+  scale_x_date(date_breaks = 'days',
+               date_labels = c('Lunes',
+                               'Martes',
+                               'Miércoles',
+                               'Jueves',
+                               'Viernes',
+                               'Sábado',
+                               'Domingo')) +
+  scale_color_continuous(guide = guide_legend(reverse = TRUE))
+```
+
+
+### **Descomposición de la serie de tiempos para casos confirmados**
+
+```{r casos decompose}
+df_daily_ts %>%
+  model(STL(confirmed ~ season(period = 7))) %>%
+  components() %>%
+  rename(Fecha = date,
+         Casos = confirmed,
+         Tendencia = trend,
+         Ciclos = season_7,
+         Ruido = remainder) %>%
+  select(Fecha,
+         Casos,
+         Tendencia,
+         Ciclos,
+         Ruido) %>%
+  pivot_longer(cols = Casos:Ruido,
+               names_to = 'Serie') %>%
+  ggplot(aes(Fecha, value)) +
+  geom_line() +
+  facet_grid(Serie ~ .,
+             scales = 'free_y') +
+  labs(title = 'Casos diarios (componentes)',
+       x = 'Semana',
+       y = NULL,
+       caption = 'Elaboró: Jorge Ortega')
+```
+
+
+### **Forecasting de casos confirmados**
+
+```{r casos forecast}
+df_daily_ts %>%
+  model(arima = ARIMA(confirmed)) %>%
+  forecast() %>%
+  autoplot(filter(df_daily,
+                  date > '2020-02-26')) +
+  labs(title = 'Casos diarios (predicciones)',
+       x = 'Semana',
+       y = 'Casos',
+       level = 'Nivel',
+       caption = 'Elaboró: Jorge Ortega')
+```
+
+
+Muertes
 =======================================================================
   
 Column
 -----------------------------------------------------------------------
   
-### **Muertes acumuladas en Mexico**
+### **Muertes confirmadas acumuladas en Mexico**
   
 ```{r}
 df_daily %>%
   ggplot(aes(date, death_cum)) + 
   geom_line() +
   geom_smooth() +
-  labs(x = 'Fecha',
-       y = 'Numero acumulado de muertes (miles)')
+  labs(title = 'Muertes diarias (acumuladas)',
+       x = 'Fecha',
+       y = 'Numero acumulado de muertes',
+       caption = 'Elaboró: Jorge Ortega')
 ```
 
 
-### **Nuevas muertes diarias**
+### **Nuevas muertes confirmadas diarias**
   
 ```{r}
 df_daily %>%
   ggplot(aes(date, death)) +
   geom_line() +
   geom_smooth() +
-  labs(x = 'Fecha',
-       y = 'Nuevas muertes diarias (cientos)')
+  labs(title = 'Muertes diarias (tendencia)',
+       x = 'Fecha',
+       y = 'Nuevas muertes diarias',
+       caption = 'Elaboró: Jorge Ortega')
 ```
-  
+
+
+### **Ciclicidad de muertes confirmadas**
+
+```{r muertes ciclos}
+df_daily_ts %>%
+  gg_season(death,
+           period = 'week') +
+  labs(title = 'Muertes diarias (ciclos semanales)',
+       x = 'Día',
+       y = 'Muertes',
+       colour = 'Semana',
+       caption = 'Elaboró: Jorge Ortega') +
+  scale_x_date(date_breaks = 'days',
+               date_labels = c('Lunes',
+                               'Martes',
+                               'Miércoles',
+                               'Jueves',
+                               'Viernes',
+                               'Sábado',
+                               'Domingo')) +
+  scale_color_continuous(guide = guide_legend(reverse = TRUE))
+```
+
+
+### **Descompisición de la serie de tiempos para casos confirmados**
+
+```{r muertes decompose}
+df_daily_ts %>%
+  model(STL(death ~ season(period = 7))) %>%
+  components() %>%
+  rename(Fecha = date,
+         Casos = death,
+         Tendencia = trend,
+         Ciclos = season_7,
+         Ruido = remainder) %>%
+  select(Fecha, Casos, Tendencia, Ciclos, Ruido) %>%
+  pivot_longer(cols = Casos:Ruido,
+               names_to = 'Serie') %>%
+  ggplot(aes(Fecha, value)) +
+  geom_line() +
+  facet_grid(Serie ~ .,
+             scales = 'free_y') +
+  labs(title = 'Muertes diarias (componentes)',
+       x = 'Semana',
+       y = NULL,
+       caption = 'Elaboró: Jorge Ortega')
+```
+
+
+### **Forecasting de muertes confirmadas**
+
+```{r muertes forecast}
+df_daily_ts %>%
+  model(arima = ARIMA(death)) %>%
+  forecast() %>%
+  autoplot(filter(df_daily,
+                  date > '2020-03-17')) +
+  labs(title = 'Muertes diarias (predicciones)',
+       x = 'Semana',
+       y = 'Muertes',
+       level = 'Nivel',
+       caption = 'Elaboró: Jorge Ortega')
+```  
   
 Tasa de muertes/caso
 =======================================================================
@@ -108,7 +266,8 @@ df_daily %>%
   geom_smooth() +
   scale_y_continuous(breaks = seq(0, 15, 1)) +
   labs(x = 'Fecha',
-       y = 'Tasa de muertes (%)')
+       y = 'Tasa de muertes (%)',
+       caption = 'Elaboró: Jorge Ortega')
 ```
 
 
